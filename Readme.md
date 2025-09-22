@@ -18,8 +18,8 @@
 
 ## Project Links
 
-- **SIH Presentation:** [View Final Presentation](https://github.com/YOUR_USERNAME/YOUR_REPO/blob/main/presentation.pptx)
-- **Video Demonstration:** [Watch Demo on YouTube](https://youtube.com/UNLISTED_VIDEO_LINK)
+- **SIH Presentation:** [View Final Presentation](https://github.com/Yash2402/SIH_2025_Internal_Round_Submission_DropTable/blob/main/presentation.pptx)
+- **Video Demonstration:** [Watch Demo on YouTube](https://youtu.be/TknEON4-Jbo)
 - **Live Deployment:** [calmly-pi.vercel.app](https://calmly-pi.vercel.app)
 - **Source Code:** [GitHub Repository](https://github.com/Akshat1505/sih-skeleton)
 
