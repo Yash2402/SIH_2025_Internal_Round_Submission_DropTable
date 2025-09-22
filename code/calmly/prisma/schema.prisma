@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// User roles for the mental health platform
+enum UserRole {
+    STUDENT
+        INSTITUTION_ADMIN
+}
+// ---------------------
+// USER & INSTITUTION MODELS (Updated for Clerk)
+// ---------------------
+// model User {
+//   id                String    @id @default(cuid())
+//   name              String?   // NextAuth provides a 'name' field
+//   email             String?   @unique // Should be optional as some providers don't return it
+//   emailVerified     DateTime? // NextAuth standard field
+//   image             String?   // NextAuth provides a profile image URL
+//   role              UserRole? // No default value
+//   anonymousUsername String    @unique @default(cuid())
+//   createdAt         DateTime  @default(now())
+//   updatedAt         DateTime  @updatedAt
+//
+//   // Institution relationship
+//   institutionId String?
+//   institution   Institution? @relation(fields: [institutionId], references: [id])
+//   
+//   // Mental health data relations
+//   phq9Scores  PHQ9Score[]
+//   gad7Scores  GAD7Score[]
+//   chatHistory ChatHistory?
+//   bookings    Booking[]
+//
+//   // The Prisma Adapter handles these relations automatically, so we list them here.
+//   accounts Account[]
+//   sessions Session[]
+//
+//   @@map("users")
+// }
+//
+//
+// model Institution {
+//   id        String   @id @default(cuid())
+//   name      String   @unique
+//   email     String   @unique // Contact email for the institution
+//   domain    String?  // Institution domain (e.g., university.edu)
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//
+//   // Relations
+//   users      User[] // Students and admins from this institution
+//   therapists Therapist[]
+//
+//   @@map("institutions")
+// }
+
+// Add these fields to your existing User model
+model User {
+  id                String    @id @default(cuid())
+  name              String?   
+  email             String?   @unique 
+  emailVerified     DateTime? 
+  image             String?   
+  role              UserRole? 
+  anonymousUsername String    @unique @default(cuid())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Student-specific fields
+  studentId         String?   // Student ID number
+  dateOfBirth       DateTime?
+  gender            String?   // "Male", "Female", "Other", "Prefer not to say"
+  phoneNumber       String?
+  emergencyContact  String?   // Emergency contact name
+  emergencyPhone    String?   // Emergency contact phone
+  medicalHistory    String?   // Any relevant medical history
+  currentMedications String?  // Current medications
+  previousTherapy   Boolean?  // Has had therapy before
+  consentGiven      Boolean   @default(false) // Consent for treatment
+  
+  // Institution relationship
+  institutionId String?
+  institution   Institution? @relation(fields: [institutionId], references: [id])
+  
+  // Existing relations
+  phq9Scores  PHQ9Score[]
+  gad7Scores  GAD7Score[]
+  bookings    Booking[]
+  accounts    Account[]
+  sessions    Session[]
+  chatHistories  ChatHistory[]
+  @@map("users")
+}
+
+// Updated Institution model
+model Institution {
+  id               String   @id @default(cuid())
+  name             String   @unique
+  email            String   @unique
+  domain           String?
+  hodName          String?  // Head of Department / Admin name
+  hodEmail         String?  // HOD contact email
+  hodPhone         String?  // HOD phone number
+  totalStudents    Int?     // Number of students in institution
+  institutionType  String?  // "University", "College", "School", "Other"
+  address          String?  // Institution address
+  city             String?
+  state            String?
+  country          String?  @default("India")
+  website          String?  // Institution website
+  established      Int?     // Year established
+  isVerified       Boolean  @default(false) // Admin verification status
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  // Relations
+  users      User[]
+  therapists Therapist[]
+
+  @@map("institutions")
+}
+
+// ---------------------
+// MENTAL HEALTH DATA MODELS
+// ---------------------
+model PHQ9Score {
+  id        String   @id @default(cuid())
+  score     Int
+  level     String // e.g., "Minimal", "Mild", "Moderate", "Moderately Severe", "Severe"
+  responses Json?   // Store individual question responses
+  createdAt DateTime @default(now())
+  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("phq9_scores")
+}
+
+model GAD7Score {
+  id        String   @id @default(cuid())
+  score     Int
+  level     String // e.g., "Minimal", "Mild", "Moderate", "Severe"
+  responses Json?   // Store individual question responses  
+  createdAt DateTime @default(now())
+  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("gad7_scores")
+}
+
+model ChatHistory {
+  id        String   @id @default(cuid())
+  userId    String   @unique // One-to-one relation with User
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Json     // Array of chat messages with AI
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("chat_histories")
+}
+
+model Therapist {
+  id            String   @id @default(cuid())
+  name          String
+  specialty     String[]  // Array of specializations
+  email         String   @unique
+  bio           String?
+  isActive      Boolean  @default(true)
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  availableSlots BookingSlot[]
+  bookings       Booking[]
+
+  @@map("therapists")
+}
+
+model BookingSlot {
+  id          String    @id @default(cuid())
+  therapistId String
+  therapist   Therapist @relation(fields: [therapistId], references: [id])
+  startTime   DateTime
+  endTime     DateTime
+  isAvailable Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  bookings Booking[]
+
+  @@map("booking_slots")
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  therapistId   String
+  therapist     Therapist     @relation(fields: [therapistId], references: [id])
+  bookingSlotId String
+  bookingSlot   BookingSlot   @relation(fields: [bookingSlotId], references: [id])
+  status        BookingStatus @default(PENDING)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("bookings")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+// ---------------------
+// NEXT-AUTH MODELS (Keep for compatibility)
+// ---------------------
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
